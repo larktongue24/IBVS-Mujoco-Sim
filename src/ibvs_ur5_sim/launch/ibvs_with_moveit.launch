@@ -44,4 +44,9 @@
     <!-- <include file="$(find ur5e_moveit_config)/launch/moveit_rviz.launch">
         <arg name="config" value="true"/>
     </include> -->
+
+
+    <node name="ibvs_trigger" pkg="ibvs_ur5_sim" type="trigger_ibvs.py" 
+          launch-prefix="gnome-terminal --"/>
+
 </launch>
