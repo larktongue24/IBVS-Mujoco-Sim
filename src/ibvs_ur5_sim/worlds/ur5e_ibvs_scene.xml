@@ -1,0 +1,31 @@
+<mujoco model="ur5e_ibvs_scene">
+
+  <include file="../models/ur5e_with_camera.xml"/>
+  
+  <option timestep="0.002"/>
+
+  <compiler meshdir="../models/assets" texturedir="../meshes"/>
+
+  <visual>
+    <map znear="0.05" zfar="2.0"/>
+    <headlight active="1" ambient="0.2 0.2 0.2" diffuse="0.6 0.6 0.6" specular="0 0 0"/>
+    <quality shadowsize="4096"/>
+  </visual>
+
+  <asset>
+    <texture type="2d" name="aruco_tex" file="aruco_marker.png"/>
+    <material name="aruco_mat" texture="aruco_tex" texrepeat="1 1" specular="0.4" shininess="0.1"/>
+  </asset>
+
+  <worldbody>
+    <geom name="floor" type="plane" size="2 2 0.1" rgba="0.8 0.8 0.8 1" contype="1" conaffinity="1"/>
+    
+    <light name="main_light" pos="0 0 4" dir="0 0 -1" diffuse="0.6 0.6 0.6" specular="0.1 0.1 0.1" castshadow="true"/>
+
+    <body name="aruco_target" pos="0.5 0 0.5" mocap="true">
+      <geom name="aruco_geom" type="box" size="0.05 0.05 0.001" material="aruco_mat" contype="1" conaffinity="1" density="1000"/>
+    </body>
+
+  </worldbody>
+
+</mujoco>

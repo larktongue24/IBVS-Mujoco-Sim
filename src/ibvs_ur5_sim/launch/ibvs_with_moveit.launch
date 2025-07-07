@@ -1,0 +1,47 @@
+<launch>
+    <param name="robot_description" command="$(find xacro)/xacro $(find ur_description)/urdf/ur5e.xacro" />
+    <param name="use_sim_time" value="true"/>
+
+    <rosparam>
+        MujocoPlugins:
+          - {type: mujoco_ros_control/MujocoRosControlPlugin, hardware: {type: mujoco_ros_control/DefaultRobotHWSim, control_period: 0.002}}
+          - {type: mujoco_ros_mocap/MocapPlugin, body_name: "aruco_target", topic_name: "/mocap/pose"}
+          - {type: ibvs_ur5_sim/PseudoDepthPlugin}
+    </rosparam>
+    <param name="camera_name" type="str" value="eye_in_hand_camera"/>
+    <param name="aruco_marker_name" type="str" value="aruco_target"/>
+    <param name="aruco_marker_size" type="double" value="0.10"/>
+    <rosparam>
+        cam_config:
+            eye_in_hand_camera: {stream_type: 1}
+    </rosparam>
+
+    <node name="mujoco_server" pkg="mujoco_ros" type="mujoco_node" output="screen">
+        <param name="modelfile" value="$(find ibvs_ur5_sim)/worlds/ur5e_ibvs_scene.xml" />
+        <param name="headless" value="false"/>
+    </node>
+
+    <rosparam file="$(find ibvs_ur5_sim)/config/ur5_controllers.yaml"/>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    <node pkg="tf" type="static_transform_publisher" name="map_to_base_broadcaster" args="0 0 0 0 0 0 map base_link 100" />
+    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="camera_optical_frame_fixer"
+      args="0 0 0 -0.5 0.5 -0.5 0.5 eye_in_hand_camera_optical_frame ibvs_camera_frame" /> -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="camera_optical_frame_fixer"
+      args="0 0 0 0.7071 0 0 0.7071 eye_in_hand_camera_optical_frame ibvs_camera_frame" />
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" output="screen"
+          args="joint_state_controller scaled_pos_joint_traj_controller" />
+
+    <include file="$(find ur5e_moveit_config)/launch/move_group.launch">
+      <arg name="allow_trajectory_execution" value="true"/>
+      <arg name="fake_execution" value="false"/>
+    </include>
+
+    <node name="aruco_detector" pkg="ibvs_ur5_sim" type="aruco_detector_node.py" output="screen"/>
+    <node name="initial_pose_setter" pkg="ibvs_ur5_sim" type="set_initial_pose.py" output="screen"/>
+    <node name="ibvs_controller" pkg="ibvs_ur5_sim" type="ibvs_control_node.py" output="screen"/>
+
+    <!-- <include file="$(find ur5e_moveit_config)/launch/moveit_rviz.launch">
+        <arg name="config" value="true"/>
+    </include> -->
+</launch>

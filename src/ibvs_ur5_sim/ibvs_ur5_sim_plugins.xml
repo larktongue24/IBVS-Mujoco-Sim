@@ -1,0 +1,9 @@
+<library path="lib/libibvs_ur5_sim_plugins">
+  <class name="ibvs_ur5_sim/PseudoDepthPlugin"
+         type="ibvs_ur5_sim::PseudoDepthPlugin"
+         base_class_type="mujoco_ros::MujocoPlugin">
+    <description>
+      A plugin to calculate and publish the pseudo-depth of Aruco marker corners.
+    </description>
+  </class>
+</library>

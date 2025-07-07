@@ -1,0 +1,35 @@
+# ur5_controllers.yaml
+
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 50
+
+
+scaled_pos_joint_traj_controller:
+  type: position_controllers/JointTrajectoryController
+  joints:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
+  
+  
+  gains:
+    shoulder_pan_joint:  {p: 2500.0, i: 0.2, d: 100.0}
+    shoulder_lift_joint: {p: 10000.0, i: 10.0, d: 100.0}
+    elbow_joint:         {p: 10000.0, i: 10.0, d: 50.0}
+    wrist_1_joint:       {p: 1000.0, i: 0.2, d: 25.0}
+    wrist_2_joint:       {p: 1000.0, i: 0.7, d: 25.0}
+    wrist_3_joint:       {p: 1000.0, i: 0.7, d: 25.5}
+
+
+  constraints:
+    goal_time: 0.6            
+    stopped_velocity_tolerance: 0.05 
+
+
+  stop_trajectory_duration: 0.5
+
+  state_publish_rate: 50
