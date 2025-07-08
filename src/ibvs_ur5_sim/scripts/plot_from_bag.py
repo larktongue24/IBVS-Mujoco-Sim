@@ -21,6 +21,8 @@ try:
 
             time_stamps.append(t.to_sec() - start_time)
             error_values.append(msg.data)
+            if len(time_stamps) >= 150:
+                break
 except Exception as e:
     print(f"Error reading bag file: {e}")
     sys.exit(1)

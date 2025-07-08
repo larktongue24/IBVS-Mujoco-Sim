@@ -23,8 +23,8 @@ class IBVSController:
         rospy.init_node('ibvs_control_node')
         rospy.loginfo("IBVS Controller Node Started")
 
-        self.lambda_ = 0.031
-        self.dt_ = 0.05
+        self.lambda_ = 0.02
+        self.dt_ = 0.15
         self.rate = rospy.Rate(1/self.dt_)
         self.error_threshold_ = 0.1
 
