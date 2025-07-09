@@ -33,6 +33,11 @@ class KalmanFilter:
         self.state_dim = 16
         self.meas_dim = 8
 
+        # State vector: [positions (8), velocities (8)]
+        self.x = np.zeros((self.state_dim, 1))
+        # State covariance matrix
+        self.P = np.eye(self.state_dim) * 500.0  # Initial uncertainty
+
         # State transition matrix F
         self.F = np.eye(self.state_dim)
         for i in range(self.meas_dim):
@@ -44,16 +49,16 @@ class KalmanFilter:
             self.H[i, i] = 1
 
         # Process noise covariance Q
-        q_pos = (process_noise_std * self.dt**3 / 3)
-        q_vel = (process_noise_std * self.dt)
-        self.Q = np.eye(self.state_dim)
-        for i in range(self.meas_dim):
-            self.Q[i, i] = q_pos
-            self.Q[i+self.meas_dim, i+self.meas_dim] = q_vel
-        self.Q = self.Q * (process_noise_std**2)
+        q_val = (self.dt**2) * (process_noise_std**2)
+        self.Q = np.eye(self.state_dim) * q_val
 
         # Measurement noise covariance R
         self.R = np.eye(self.meas_dim) * (measurement_noise_std**2)
+
+    def predict(self):
+        self.x = self.F @ self.x
+        self.P = self.F @ self.P @ self.F.T + self.Q
+        return self.x, self.P
 
     def update(self, z, x_pred, p_pred):
         y = z - self.H @ x_pred  # Innovation
@@ -81,7 +86,7 @@ class CompensatedIBVSController:
         self.error_threshold_ = 0.5 
         self.home_joint_positions = [0.2, -1.7, -0.6, -2.2, 1.6, 0.2]
         
-        process_noise_std = 50.0 # process noise standard deviation (pixels/s^2), needs tuning
+        process_noise_std = 5000.0 # process noise standard deviation (pixels/s^2), needs tuning
         measurement_noise_std = 2.0 # measurement_noise_std (pixels), needs tuning
         
         self.kf = KalmanFilter(self.dt_, process_noise_std, measurement_noise_std)
@@ -102,7 +107,6 @@ class CompensatedIBVSController:
             img_center_x + size / 2, img_center_y + size / 2
         ])
         self.last_known_corners = None
-        self.depth_cache = None
 
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
@@ -163,7 +167,7 @@ class CompensatedIBVSController:
             corners.extend([pose.position.x, pose.position.y])
         z = np.array(corners).reshape(-1, 1) 
 
-        self.last_known_corners = z.copy()
+        self.last_known_corners = z 
         
         self.depth_cache = np.array(depths_msg.data)
         
@@ -175,10 +179,9 @@ class CompensatedIBVSController:
         with self.lock:
             # find the closest past state in the history buffer
             target_index = -1
-            for i in range(len(self.history_buffer) - 1, -1, -1):
-                item_time = self.history_buffer[i]['timestamp']
-                if item_time <= measurement_time:
-                    target_index = i
+            for i, item in enumerate(reversed(self.history_buffer)):
+                if item['timestamp'] <= measurement_time:
+                    target_index = len(self.history_buffer) - 1 - i
                     break
             
             if target_index == -1: 
@@ -190,25 +193,20 @@ class CompensatedIBVSController:
             
             corrected_x, corrected_p = self.kf.update(z, past_pred_x, past_pred_p)
 
-            temp_history = list(self.history_buffer)
+            self.history_buffer[target_index]['state'] = corrected_x.copy()
+            self.history_buffer[target_index]['covariance'] = corrected_p.copy()
 
-            temp_history[target_index]['state'] = corrected_x
-            temp_history[target_index]['covariance'] = corrected_p
-            
-            for i in range(target_index, len(temp_history) - 1):
-                
-                re_predicted_x, re_predicted_p = self.kf.predict_from_state(
-                    temp_history[i]['state'], 
-                    temp_history[i]['covariance']
+            for i in range(target_index, len(self.history_buffer) - 1):
+                next_x, next_p = self.kf.predict_from_state(
+                    self.history_buffer[i]['state'], 
+                    self.history_buffer[i]['covariance']
                 )
-              
-                temp_history[i+1]['state'] = re_predicted_x
-                temp_history[i+1]['covariance'] = re_predicted_p
-            
-            self.history_buffer.clear()
-            self.history_buffer.extend(temp_history)
+                self.history_buffer[i+1]['state'] = next_x.copy()
+                self.history_buffer[i+1]['covariance'] = next_p.copy()
 
-            rospy.loginfo_throttle(1.0, f"KF updated from T-{(rospy.Time.now() - measurement_time).to_sec():.3f}s. Repropagated {len(temp_history) - 1 - target_index} steps.")
+            self.kf.x = self.history_buffer[-1]['state'].copy()
+            self.kf.P = self.history_buffer[-1]['covariance'].copy()
+            rospy.loginfo_throttle(1.0, f"KF updated from measurement at T-{ (rospy.Time.now() - measurement_time).to_sec():.3f}s")
 
 
     # =================================================================
@@ -216,21 +214,14 @@ class CompensatedIBVSController:
     # =================================================================
 
     def control_loop_callback(self, event):
-        if not self.servoing_active or not self.history_buffer:
-            rospy.loginfo_throttle(5.0, "IBVS is standing by (servoing_active=False or history_buffer is empty)...")
-            return
-
-
+        
         with self.lock:
-            last_state = self.history_buffer[-1]['state']
-            last_covariance = self.history_buffer[-1]['covariance']
-            predicted_x, predicted_p = self.kf.predict_from_state(last_state, last_covariance)
-            
+            predicted_x, predicted_p = self.kf.predict()
             
             history_item = {
                 'timestamp': event.current_real, 
-                'state': predicted_x, 
-                'covariance': predicted_p
+                'state': predicted_x.copy(), 
+                'covariance': predicted_p.copy()
             }
             self.history_buffer.append(history_item)
             
@@ -303,26 +294,21 @@ class CompensatedIBVSController:
     
     def handle_start_servoing(self, req):
 
-        if self.last_known_corners is None:
-            rospy.logerr("Cannot start servoing. No measurements received yet.")
-            return TriggerResponse(success=False, message="No measurements received yet.")
-
-        rospy.loginfo("Start servoing command received! Resetting filter state and history.")
+        rospy.loginfo("Start servoing command received! Resetting filter state.")
         
         with self.lock: 
-       
-            self.history_buffer.clear()
-
+            
             x_init = np.zeros((self.kf.state_dim, 1))
-            x_init[0:self.kf.meas_dim] = self.last_known_corners.reshape(-1, 1)
-            p_init = np.eye(self.kf.state_dim) * 500.0 
-   
-            history_item = {
-                'timestamp': rospy.Time.now(), 
-                'state': x_init, 
-                'covariance': p_init
-            }
-            self.history_buffer.append(history_item)
+
+            if self.last_known_corners is not None:
+                rospy.loginfo("Initializing filter with last known corner positions.")
+                x_init[0:self.kf.meas_dim] = self.last_known_corners
+            else:
+                rospy.logwarn("No recent measurements. Initializing filter with desired corner positions.")
+                x_init[0:self.kf.meas_dim] = self.s_des_.reshape(-1, 1)
+
+            self.kf.x = x_init
+            self.kf.P = np.eye(self.kf.state_dim) * 500.0
 
         self.servoing_active = True
         
@@ -331,7 +317,6 @@ class CompensatedIBVSController:
             success=True,
             message="Visual servoing has been activated with a reset filter state."
         )
-
 
     def execute_camera_velocity(self, v_cam, avg_pixel_error):
         
@@ -433,3 +418,5 @@ if __name__ == '__main__':
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
+    finally:
+        cv2.destroyAllWindows()

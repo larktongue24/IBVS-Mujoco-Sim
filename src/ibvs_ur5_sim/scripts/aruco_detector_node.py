@@ -162,12 +162,30 @@ class ArucoDetector:
         self.processing_thread = threading.Thread(target=self.processing_worker)
         self.shutdown_event = threading.Event()
 
-        self.info_sub = rospy.Subscriber("/mujoco_server/cameras/eye_in_hand_camera/rgb/camera_info", CameraInfo, self.camera_info_callback)
-        self.image_sub = rospy.Subscriber("/mujoco_server/cameras/eye_in_hand_camera/rgb/image_raw", Image, self.image_callback, queue_size=1)
-        # self.corners_pub = rospy.Publisher('/aruco_corners', PoseArray, queue_size=1)
-        self.corners_pub = rospy.Publisher(
-            '/aruco_corners_pixels', Float32MultiArray, queue_size=1
+        self.info_sub = rospy.Subscriber(
+            "/mujoco_server/cameras/eye_in_hand_camera/rgb/camera_info", 
+            CameraInfo, 
+            self.camera_info_callback
         )
+
+        self.image_sub = rospy.Subscriber(
+            "/mujoco_server/cameras/eye_in_hand_camera/rgb/image_raw", 
+            Image, 
+            self.image_callback, 
+            queue_size=1
+        )
+
+        self.corners_pub = rospy.Publisher(
+            '/aruco_corners', 
+            PoseArray, 
+            queue_size=1
+        )
+
+        # self.corners_pub = rospy.Publisher(
+        #     '/aruco_corners_pixels', 
+        #     Float32MultiArray, 
+        #     queue_size=1
+        # )
 
         rospy.loginfo("Waiting for camera info...")
         
@@ -217,20 +235,20 @@ class ArucoDetector:
                 if ids is not None:
                     corner_points = corners[0][0]
 
-                    # rospy.sleep(0.5) 
+                    rospy.sleep(0.5) 
 
-                    # pose_array_msg = PoseArray()
-                    # pose_array_msg.header = rgb_msg.header
-                    # for point in corner_points:
-                    #     p = Pose()
-                    #     p.position.x = point[0]
-                    #     p.position.y = point[1]
-                    #     pose_array_msg.poses.append(p)
+                    pose_array_msg = PoseArray()
+                    pose_array_msg.header = rgb_msg.header
+                    for point in corner_points:
+                        p = Pose()
+                        p.position.x = point[0]
+                        p.position.y = point[1]
+                        pose_array_msg.poses.append(p)
                     
-                    # self.corners_pub.publish(pose_array_msg)
-                    # rospy.loginfo_throttle(1.0, f"Published delayed corners with timestamp: {rgb_msg.header.stamp.to_sec()}")
+                    self.corners_pub.publish(pose_array_msg)
+                    rospy.loginfo_throttle(1.0, f"Published delayed corners with timestamp: {rgb_msg.header.stamp.to_sec()}")
 
-                    self.corners_pub.publish(data=corner_points.flatten().tolist())
+                    # self.corners_pub.publish(data=corner_points.flatten().tolist())
 
             except Exception as e:
                 if "Empty" not in str(e):
