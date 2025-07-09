@@ -1,1 +1,1 @@
-Mujoco + Moveit + ros_control simulation environment for image-based visual servoing with UR5E
+Mujoco + Moveit + ROS Noetic simulation environment for Kalman Filter and Image-Based Visual Servoing (IBVS) framework with UR5E and Aruco marker and without ViSP

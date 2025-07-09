@@ -1,0 +1,10 @@
+aruco_mover_node:
+  mocap_body_name: "aruco_target"
+  publish_rate: 50.0 
+
+  initial_pose:
+    position: [0.5, 0, 0.5] 
+    orientation_euler: [0, 0, 0] 
+  
+  linear_velocity: [-0.005, 0.005, -0.005]  
+  angular_velocity: [0.0, 0.0, 0.0]  

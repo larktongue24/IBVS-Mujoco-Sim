@@ -7,7 +7,7 @@ from scipy.linalg import pinv
 import message_filters
 import tf2_ros
 from tf.transformations import quaternion_from_matrix, translation_from_matrix, concatenate_matrices, translation_matrix, quaternion_matrix, quaternion_about_axis
-
+import time
 from std_msgs.msg import Float32, Float32MultiArray
 from sensor_msgs.msg import CameraInfo, JointState
 from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
@@ -23,8 +23,8 @@ class IBVSController:
         rospy.init_node('ibvs_control_node')
         rospy.loginfo("IBVS Controller Node Started")
 
-        self.lambda_ = 0.02
-        self.dt_ = 0.15
+        self.lambda_ = 0.025 # 0.02
+        self.dt_ = 0.2 # 0.15
         self.rate = rospy.Rate(1/self.dt_)
         self.error_threshold_ = 0.1
 
@@ -109,7 +109,7 @@ class IBVSController:
         if self.camera_matrix is None:
             self.camera_matrix = np.array(msg.K).reshape(3, 3)
             self.fx, self.fy, self.cx, self.cy = self.camera_matrix[0,0], self.camera_matrix[1,1], self.camera_matrix[0,2], self.camera_matrix[1,2]
-            rospy.loginfo("Camera intrinsics received.")
+            rospy.loginfo(f"Camera intrinsics received: {self.fx}, {self.fy}, {self.cx}, {self.cy}")
             self.info_sub.unregister()
 
     def compute_image_jacobian(self, u, v, Z):
@@ -132,7 +132,7 @@ class IBVSController:
         )
 
     def ibvs_callback(self, corners_msg, depths_msg):
-        
+        start_callback_time = rospy.Time.now()
         if not self.servoing_active:
             rospy.loginfo_throttle(5.0, "IBVS is standing by, waiting for start command...")
             return
@@ -160,10 +160,39 @@ class IBVSController:
             return
 
         s_cur, depths = np.array(corners_msg.data), np.array(depths_msg.data)
+
+        # s_cur_reshaped = s_cur.reshape((4, 2))
+        # s_des_reshaped = self.s_des_.reshape((4, 2))
+
+        # distance_errors = []
+
+        # for i in range(4):
+        #     u_cur, v_cur = s_cur_reshaped[i]
+        #     Z = depths[i] 
+
+        #     u_des, v_des = s_des_reshaped[i]
+            
+        #     X_cur = (u_cur - self.cx) * Z / self.fx
+        #     Y_cur = (v_cur - self.cy) * Z / self.fy
+        #     P_cur = np.array([X_cur, Y_cur, Z])
+
+        #     X_des = (u_des - self.cx) * Z / self.fx
+        #     Y_des = (v_des - self.cy) * Z / self.fy
+        #     P_des = np.array([X_des, Y_des, Z])
+
+        #     error_3d_for_this_corner = np.linalg.norm(P_cur - P_des)
+        #     distance_errors.append(error_3d_for_this_corner)
+
+        # avg_3d_error = np.mean(distance_errors)
+
+        # rospy.loginfo_throttle(0.5, f"Average 3D error: {avg_3d_error*1000:.2f} mm")
+
+
         error = s_cur - self.s_des_
         # self.error_integral += error * self.dt_
         avg_pixel_error = np.mean(np.sqrt(error[0::2]**2 + error[1::2]**2))
         self.error_pub.publish(avg_pixel_error)
+        
         if avg_pixel_error < self.error_threshold_:
             rospy.loginfo(f"Target reached! {avg_pixel_error}")
             return
@@ -173,6 +202,13 @@ class IBVSController:
             if Z < 0.01: rospy.logwarn("Invalid depth value."); return
             L_s[2*i:2*i+2, :] = self.compute_image_jacobian(u, v, Z)
         L_s_inv = pinv(L_s)
+
+
+        time.sleep(0.1)
+        end_callback_time = rospy.Time.now()
+        elapsed_time = (end_callback_time - start_callback_time).to_sec()
+        rospy.loginfo_throttle(1.0, f"IBVS callback processing time: {elapsed_time:.3f} seconds")
+
 
         # =========================================================
         # ========== DLS ==========
@@ -275,7 +311,7 @@ class IBVSController:
             if response.error_code.val == response.error_code.SUCCESS:
                 q_desired = list(response.solution.joint_state.position)
                 
-                rospy.loginfo_throttle(1.0, f"MoveIt IK solution found, sending goal. {avg_pixel_error}")
+                rospy.loginfo_throttle(1.0, f"MoveIt IK solution found, error: {avg_pixel_error}")
                 goal = FollowJointTrajectoryGoal()
                 goal.trajectory.joint_names = self.filter_joint_names_for_controller(response.solution.joint_state.name)
                 point = JointTrajectoryPoint()
