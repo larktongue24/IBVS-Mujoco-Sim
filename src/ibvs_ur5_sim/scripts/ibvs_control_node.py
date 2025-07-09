@@ -23,8 +23,8 @@ class IBVSController:
         rospy.init_node('ibvs_control_node')
         rospy.loginfo("IBVS Controller Node Started")
 
-        self.lambda_ = 0.025 # 0.02
-        self.dt_ = 0.2 # 0.15
+        self.lambda_ = 0.02 # 0.02 0.025
+        self.dt_ = 0.15 # 0.15 0.2
         self.rate = rospy.Rate(1/self.dt_)
         self.error_threshold_ = 0.1
 
@@ -132,7 +132,9 @@ class IBVSController:
         )
 
     def ibvs_callback(self, corners_msg, depths_msg):
-        start_callback_time = rospy.Time.now()
+
+        #start_callback_time = rospy.Time.now()
+
         if not self.servoing_active:
             rospy.loginfo_throttle(5.0, "IBVS is standing by, waiting for start command...")
             return
@@ -204,10 +206,10 @@ class IBVSController:
         L_s_inv = pinv(L_s)
 
 
-        time.sleep(0.1)
-        end_callback_time = rospy.Time.now()
-        elapsed_time = (end_callback_time - start_callback_time).to_sec()
-        rospy.loginfo_throttle(1.0, f"IBVS callback processing time: {elapsed_time:.3f} seconds")
+        # time.sleep(0.1)
+        # end_callback_time = rospy.Time.now()
+        # elapsed_time = (end_callback_time - start_callback_time).to_sec()
+        # rospy.loginfo_throttle(1.0, f"IBVS callback processing time: {elapsed_time:.3f} seconds")
 
 
         # =========================================================

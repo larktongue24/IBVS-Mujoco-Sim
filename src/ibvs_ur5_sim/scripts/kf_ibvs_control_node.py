@@ -9,7 +9,7 @@ from collections import deque
 from scipy.linalg import pinv
 
 from cv_bridge import CvBridge
-from sensor_msgs.msg import Image, CameraInfo, JointState
+from sensor_msgs.msg import CameraInfo, JointState
 from std_msgs.msg import Float32, Float32MultiArray
 import message_filters
 import tf2_ros
@@ -147,7 +147,10 @@ class CompensatedIBVSController:
         depth_sub = message_filters.Subscriber('/aruco_corners_pseudo_depth', Float32MultiArray)
         
         self.ts = message_filters.ApproximateTimeSynchronizer(
-            [corners_sub, depth_sub], queue_size=10, slop=0.5
+            [corners_sub, depth_sub], 
+            queue_size=10, 
+            slop=0.5,
+            allow_headerless=True  
         )
         self.ts.registerCallback(self.measurement_callback)
         

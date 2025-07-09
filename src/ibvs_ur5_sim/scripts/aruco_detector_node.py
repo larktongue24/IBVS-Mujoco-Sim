@@ -44,14 +44,14 @@ class ArucoDetector:
         )
         
         # without timestamp
-        # self.corners_pub = rospy.Publisher(
-        #     '/aruco_corners_pixels', Float32MultiArray, queue_size=1
-        # )
+        self.corners_pub = rospy.Publisher(
+            '/aruco_corners_pixels', Float32MultiArray, queue_size=1
+        )
 
         # with timestamp
-        self.corners_pub = rospy.Publisher(
-            '/aruco_corners', PoseArray, queue_size=1 
-        )
+        # self.corners_pub = rospy.Publisher(
+        #     '/aruco_corners', PoseArray, queue_size=1 
+        # )
 
         rospy.loginfo("Waiting for camera info...")
 
@@ -80,22 +80,22 @@ class ArucoDetector:
             if ids is not None:
                 corner_points = corners[0][0]
 
-                rospy.sleep(0.5) 
+                # rospy.sleep(0.5) 
 
-                pose_array_msg = PoseArray()
-                pose_array_msg.header = rgb_msg.header
-                for point in corner_points:
-                    p = Pose()
-                    p.position.x = point[0]
-                    p.position.y = point[1]
-                    p.position.z = 0 
-                    pose_array_msg.poses.append(p)
+                # pose_array_msg = PoseArray()
+                # pose_array_msg.header = rgb_msg.header
+                # for point in corner_points:
+                #     p = Pose()
+                #     p.position.x = point[0]
+                #     p.position.y = point[1]
+                #     p.position.z = 0 
+                #     pose_array_msg.poses.append(p)
 
                 # with timestamp
-                self.corners_pub.publish(pose_array_msg)
+                # self.corners_pub.publish(pose_array_msg)
 
                 # without timestamp
-                # self.corners_pub.publish(data=corner_points.flatten().tolist())
+                self.corners_pub.publish(data=corner_points.flatten().tolist())
                 
                 cv2.aruco.drawDetectedMarkers(display_image, corners, ids)
                 
