@@ -80,7 +80,7 @@ class ArucoDetector:
             if ids is not None:
                 corner_points = corners[0][0]
 
-                # rospy.sleep(0.5) 
+                rospy.sleep(0.5) 
 
                 # pose_array_msg = PoseArray()
                 # pose_array_msg.header = rgb_msg.header
