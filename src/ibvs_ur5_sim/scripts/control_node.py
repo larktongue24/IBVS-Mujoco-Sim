@@ -24,8 +24,8 @@ class ControlNode:
     def __init__(self):
         rospy.init_node('control_node')
 
-        self.lambda_ = 0.01
-        self.control_frequency_ = 50 # Hz
+        self.lambda_ = 0.006 # static object: 0.006
+        self.control_frequency_ = 2.5 # static object: 2.5
         self.dt_ = 1.0 / self.control_frequency_
         self.error_threshold_ = 1.0
         
@@ -55,7 +55,7 @@ class ControlNode:
             '/scaled_pos_joint_traj_controller/follow_joint_trajectory', 
             FollowJointTrajectoryAction
         )
-        
+
         ik_service_name = "/compute_ik" 
         rospy.loginfo(f"Waiting for IK service: {ik_service_name}...")
         rospy.wait_for_service(ik_service_name)
@@ -127,8 +127,8 @@ class ControlNode:
         
         if avg_pixel_error < self.error_threshold_:
             rospy.loginfo(f"Target reached! Deactivating servoing. Error: {avg_pixel_error:.3f}")
-            self.servoing_active = False
-            return
+            # self.servoing_active = False
+            # return
             
         L_s = np.zeros((8, 6))
         for i in range(4):

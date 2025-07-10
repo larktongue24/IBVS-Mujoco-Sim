@@ -56,10 +56,10 @@ class FilterNode:
     def __init__(self):
         rospy.init_node('filter_node')
 
-        self.frequency = 50.0
+        self.frequency = 20.0 
         self.dt = 1.0 / self.frequency
-        process_noise_std = 50.0
-        measurement_noise_std = 2.0
+        process_noise_std = 10.0 # static object: 10
+        measurement_noise_std = 1.0
         
         self.kf = KalmanFilter(self.dt, process_noise_std, measurement_noise_std)
         self.history_buffer = deque(maxlen=int(self.frequency * 2.0))
@@ -122,9 +122,9 @@ class FilterNode:
         with self.lock:
             self.last_known_corners = z.copy()
             
-        
         if self.servoing_active:
             self.update_filter_from_past(z, measurement_time)
+
 
     def update_filter_from_past(self, z, measurement_time):
         
