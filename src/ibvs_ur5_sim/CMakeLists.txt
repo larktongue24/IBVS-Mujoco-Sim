@@ -10,12 +10,13 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
   roscpp
   std_msgs
+  ibvs_msgs
 )
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ibvs_ur5_sim_plugins
-  CATKIN_DEPENDS mujoco_ros roscpp std_msgs pluginlib
+  CATKIN_DEPENDS mujoco_ros roscpp std_msgs pluginlib ibvs_msgs
 )
 
 include_directories(

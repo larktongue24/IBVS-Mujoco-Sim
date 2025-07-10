@@ -112,7 +112,7 @@ class CompensatedIBVSController:
         self.camera_optical_frame = "ibvs_camera_frame"
 
         self.joint_traj_client_ = actionlib.SimpleActionClient(
-             '/scaled_pos_joint_traj_controller/follow_joint_trajectory', FollowJointTrajectoryAction
+            '/scaled_pos_joint_traj_controller/follow_joint_trajectory', FollowJointTrajectoryAction
         )
         rospy.loginfo("Waiting for trajectory action server...")
         self.joint_traj_client_.wait_for_server()
