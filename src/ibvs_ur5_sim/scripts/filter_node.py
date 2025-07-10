@@ -59,7 +59,7 @@ class FilterNode:
         self.frequency = 20.0 
         self.dt = 1.0 / self.frequency
         process_noise_std = 10.0 # static object: 10
-        measurement_noise_std = 1.0
+        measurement_noise_std = 1.0 
         
         self.kf = KalmanFilter(self.dt, process_noise_std, measurement_noise_std)
         self.history_buffer = deque(maxlen=int(self.frequency * 2.0))

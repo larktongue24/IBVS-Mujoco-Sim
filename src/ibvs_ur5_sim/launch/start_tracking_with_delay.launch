@@ -1,0 +1,8 @@
+<launch>
+    <include file="$(find ibvs_ur5_sim)/launch/kf_ibvs_simulation.launch" />
+    
+    <rosparam file="$(find ibvs_ur5_sim)/config/mocap_motion.yaml" />
+
+    <node name="aruco_mover_node" pkg="ibvs_ur5_sim" type="aruco_mover.py" output="screen" />
+
+</launch>

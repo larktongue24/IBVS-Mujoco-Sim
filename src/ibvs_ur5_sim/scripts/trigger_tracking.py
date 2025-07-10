@@ -5,8 +5,8 @@ from std_srvs.srv import Trigger
 def main():
     rospy.init_node('ibvs_trigger_node')
 
-    service_name = '/ibvs/start_servoing'
-
+    service_name = '/ibvs/master_control'
+    
     rospy.loginfo(f"Waiting for service '{service_name}'...")
     rospy.wait_for_service(service_name)
 

@@ -37,12 +37,12 @@
       <arg name="fake_execution" value="false"/>
     </include>
 
-    <node name="aruco_detector" pkg="ibvs_ur5_sim" type="aruco_detector_node.py" output="screen"/>
+    <node name="aruco_detector" pkg="ibvs_ur5_sim" type="aruco_detector_with_delay.py" output="screen"/>
     <node name="initial_pose_setter" pkg="ibvs_ur5_sim" type="set_initial_pose.py" output="screen"/>
-    <node name="ibvs_controller" pkg="ibvs_ur5_sim" type="ibvs_control_node.py" output="screen"/>
+    <!-- <node name="ibvs_controller" pkg="ibvs_ur5_sim" type="ibvs_control_node.py" output="screen"/> -->
 
-    <!-- <node name="filter_node" pkg="ibvs_ur5_sim" type="filter_node.py" output="screen"/>
-    <node name="control_node" pkg="ibvs_ur5_sim" type="control_node.py" output="screen"/> -->
+    <node name="filter_node" pkg="ibvs_ur5_sim" type="filter_node.py" output="screen"/>
+    <node name="control_node" pkg="ibvs_ur5_sim" type="control_node.py" output="screen"/>
 
     
     <!-- <include file="$(find ur5e_moveit_config)/launch/moveit_rviz.launch">
@@ -50,7 +50,7 @@
     </include> -->
 
 
-    <node name="ibvs_trigger" pkg="ibvs_ur5_sim" type="trigger_ibvs.py" 
+    <node name="ibvs_trigger" pkg="ibvs_ur5_sim" type="trigger_tracking.py" 
           launch-prefix="gnome-terminal --"/>
 
 </launch>

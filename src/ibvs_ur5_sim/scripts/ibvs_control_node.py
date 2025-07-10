@@ -23,10 +23,10 @@ class IBVSController:
         rospy.init_node('ibvs_control_node')
         rospy.loginfo("IBVS Controller Node Started")
 
-        self.lambda_ = 0.02 # 0.02 0.025
-        self.dt_ = 0.15 # 0.15 0.2
+        self.lambda_ = 0.025 # 0.02 0.025 
+        self.dt_ = 0.08 # 0.15 0.2
         self.rate = rospy.Rate(1/self.dt_)
-        self.error_threshold_ = 0.1
+        self.error_threshold_ = 0.5
 
         # INT
         self.lambda_i_ = 0.01 
@@ -197,13 +197,14 @@ class IBVSController:
         
         if avg_pixel_error < self.error_threshold_:
             rospy.loginfo(f"Target reached! {avg_pixel_error}")
+            self.servoing_active = False
             return
         L_s = np.zeros((8, 6))
         for i in range(4):
             u, v, Z = s_cur[2*i], s_cur[2*i+1], depths[i]
             if Z < 0.01: rospy.logwarn("Invalid depth value."); return
             L_s[2*i:2*i+2, :] = self.compute_image_jacobian(u, v, Z)
-        L_s_inv = pinv(L_s)
+        # L_s_inv = pinv(L_s)
 
 
         # time.sleep(0.1)
@@ -215,16 +216,16 @@ class IBVSController:
         # =========================================================
         # ========== DLS ==========
         # =========================================================
-        # k = 0.01
+        k = 0.05
 
-        # identity_matrix = np.identity(L_s.shape[0]) 
+        identity_matrix = np.identity(L_s.shape[0]) 
 
-        # L_s_T = L_s.T
-        # term_to_invert = np.dot(L_s, L_s_T) + k * identity_matrix
-        # temp_inv = np.linalg.inv(term_to_invert)
-        # L_s_damped_inv = np.dot(L_s_T, temp_inv)
+        L_s_T = L_s.T
+        term_to_invert = np.dot(L_s, L_s_T) + k * identity_matrix
+        temp_inv = np.linalg.inv(term_to_invert)
+        L_s_damped_inv = np.dot(L_s_T, temp_inv)
 
-        # L_s_inv = L_s_damped_inv 
+        L_s_inv = L_s_damped_inv 
 
 
         # =========================================================
