@@ -23,13 +23,13 @@ class IBVSController:
         rospy.init_node('ibvs_control_node')
         rospy.loginfo("IBVS Controller Node Started")
 
-        self.lambda_ = 0.025 # 0.02 0.025 
-        self.dt_ = 0.08 # 0.15 0.2
+        self.lambda_ = 0.018 # 0.02 0.025 0.025 0.034
+        self.dt_ = 0.05 # 0.15 0.2 0.08 0.07
         self.rate = rospy.Rate(1/self.dt_)
-        self.error_threshold_ = 0.5
+        self.error_threshold_ = 0.1
 
         # INT
-        self.lambda_i_ = 0.01 
+        self.lambda_i_ = 0.09
         self.error_integral = np.zeros(8) 
 
         self.is_ready_to_servo = False
@@ -163,48 +163,50 @@ class IBVSController:
 
         s_cur, depths = np.array(corners_msg.data), np.array(depths_msg.data)
 
-        # s_cur_reshaped = s_cur.reshape((4, 2))
-        # s_des_reshaped = self.s_des_.reshape((4, 2))
+        s_cur_reshaped = s_cur.reshape((4, 2))
+        s_des_reshaped = self.s_des_.reshape((4, 2))
 
-        # distance_errors = []
+        distance_errors = []
 
-        # for i in range(4):
-        #     u_cur, v_cur = s_cur_reshaped[i]
-        #     Z = depths[i] 
+        for i in range(4):
+            u_cur, v_cur = s_cur_reshaped[i]
+            Z = depths[i] 
 
-        #     u_des, v_des = s_des_reshaped[i]
+            u_des, v_des = s_des_reshaped[i]
             
-        #     X_cur = (u_cur - self.cx) * Z / self.fx
-        #     Y_cur = (v_cur - self.cy) * Z / self.fy
-        #     P_cur = np.array([X_cur, Y_cur, Z])
+            X_cur = (u_cur - self.cx) * Z / self.fx
+            Y_cur = (v_cur - self.cy) * Z / self.fy
+            P_cur = np.array([X_cur, Y_cur, Z])
 
-        #     X_des = (u_des - self.cx) * Z / self.fx
-        #     Y_des = (v_des - self.cy) * Z / self.fy
-        #     P_des = np.array([X_des, Y_des, Z])
+            X_des = (u_des - self.cx) * Z / self.fx
+            Y_des = (v_des - self.cy) * Z / self.fy
+            P_des = np.array([X_des, Y_des, Z])
 
-        #     error_3d_for_this_corner = np.linalg.norm(P_cur - P_des)
-        #     distance_errors.append(error_3d_for_this_corner)
+            error_3d_for_this_corner = np.linalg.norm(P_cur - P_des)
+            distance_errors.append(error_3d_for_this_corner)
 
-        # avg_3d_error = np.mean(distance_errors)
+        avg_3d_error = np.mean(distance_errors)
 
-        # rospy.loginfo_throttle(0.5, f"Average 3D error: {avg_3d_error*1000:.2f} mm")
+        rospy.loginfo_throttle(0.5, f"Average 3D error: {avg_3d_error*1000:.2f} mm")
 
 
         error = s_cur - self.s_des_
-        # self.error_integral += error * self.dt_
+        self.error_integral += error * self.dt_
         avg_pixel_error = np.mean(np.sqrt(error[0::2]**2 + error[1::2]**2))
         self.error_pub.publish(avg_pixel_error)
         
         if avg_pixel_error < self.error_threshold_:
+
             rospy.loginfo(f"Target reached! {avg_pixel_error}")
-            self.servoing_active = False
+            # self.servoing_active = False
+
             return
         L_s = np.zeros((8, 6))
         for i in range(4):
             u, v, Z = s_cur[2*i], s_cur[2*i+1], depths[i]
             if Z < 0.01: rospy.logwarn("Invalid depth value."); return
             L_s[2*i:2*i+2, :] = self.compute_image_jacobian(u, v, Z)
-        # L_s_inv = pinv(L_s)
+        L_s_inv = pinv(L_s)
 
 
         # time.sleep(0.1)
@@ -216,16 +218,16 @@ class IBVSController:
         # =========================================================
         # ========== DLS ==========
         # =========================================================
-        k = 0.05
+        # k = 0.01
 
-        identity_matrix = np.identity(L_s.shape[0]) 
+        # identity_matrix = np.identity(L_s.shape[0]) 
 
-        L_s_T = L_s.T
-        term_to_invert = np.dot(L_s, L_s_T) + k * identity_matrix
-        temp_inv = np.linalg.inv(term_to_invert)
-        L_s_damped_inv = np.dot(L_s_T, temp_inv)
+        # L_s_T = L_s.T
+        # term_to_invert = np.dot(L_s, L_s_T) + k * identity_matrix
+        # temp_inv = np.linalg.inv(term_to_invert)
+        # L_s_damped_inv = np.dot(L_s_T, temp_inv)
 
-        L_s_inv = L_s_damped_inv 
+        # L_s_inv = L_s_damped_inv 
 
 
         # =========================================================
@@ -252,9 +254,9 @@ class IBVSController:
 
         # =========================================================
         
-        v_cam = -self.lambda_ * np.dot(L_s_inv, error)
+        # v_cam = -self.lambda_ * np.dot(L_s_inv, error)
         # v_cam = np.array([0, 0, 0.1, 0, 0, 0]) 
-        # v_cam = -np.dot(L_s_inv, (self.lambda_ * error + self.lambda_i_ * self.error_integral))
+        v_cam = -np.dot(L_s_inv, (self.lambda_ * error + self.lambda_i_ * self.error_integral))
         
         # if response.error_code.val != response.error_code.SUCCESS:
         #     self.error_integral.fill(0)
@@ -314,7 +316,7 @@ class IBVSController:
             if response.error_code.val == response.error_code.SUCCESS:
                 q_desired = list(response.solution.joint_state.position)
                 
-                rospy.loginfo_throttle(1.0, f"MoveIt IK solution found, error: {avg_pixel_error}")
+                # rospy.loginfo_throttle(1.0, f"MoveIt IK solution found, error: {avg_pixel_error}")
                 goal = FollowJointTrajectoryGoal()
                 goal.trajectory.joint_names = self.filter_joint_names_for_controller(response.solution.joint_state.name)
                 point = JointTrajectoryPoint()
@@ -342,9 +344,9 @@ class IBVSController:
                 # rospy.logwarn(f"Image Error Vector (e): {np.round(error, 1)}")
                 rospy.logwarn("-------------------------------------------")
 
-            # if response.error_code.val != response.error_code.SUCCESS:
-            #     self.error_integral.fill(0)
-            #     rospy.logwarn("Integral term reset due to IK failure (Anti-Windup).")
+            if response.error_code.val != response.error_code.SUCCESS:
+                self.error_integral.fill(0)
+                rospy.logwarn("Integral term reset due to IK failure (Anti-Windup).")
 
         except rospy.ServiceException as e:
             rospy.logerr(f"IK service call failed: {e}")

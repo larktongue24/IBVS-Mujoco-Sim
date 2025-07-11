@@ -1,5 +1,5 @@
 <launch>
-    <include file="$(find ibvs_ur5_sim)/launch/kf_ibvs_simulation.launch" />
+    <include file="$(find ibvs_ur5_sim)/launch/ibvs_simulation.launch" />
     
     <rosparam file="$(find ibvs_ur5_sim)/config/mocap_linear_motion.yaml" />
 

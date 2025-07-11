@@ -1,0 +1,18 @@
+# mocap_sinusoid_motion.yaml
+
+aruco_sinusoid_mover_node:
+  mocap_body_name: "aruco_target"
+  publish_rate: 100.0 
+
+  initial_pose:
+    position: [0.5, 0.0, 0.4] # X, Y, Z
+    orientation_euler: [0.0, 0.0, 0.0] # Roll, Pitch, Yaw 
+  
+  motion_params:
+    x: { amplitude: 0.05, frequency: 0.5, phase: 0.0 }
+    y: { amplitude: 0.05, frequency: 0.5, phase: 1.5708 } 
+    z: { amplitude: 0.05,  frequency: 0.5, phase: 0.0 }   
+    
+    roll:  { amplitude: 0.25, frequency: 0.2, phase: 0.0 }
+    pitch: { amplitude: 0.25, frequency: 0.2, phase: 0.0 }   
+    yaw:   { amplitude: 0.0, frequency: 0.0, phase: 0.0 }

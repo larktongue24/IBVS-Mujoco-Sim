@@ -6,5 +6,5 @@ aruco_mover_node:
     position: [0.5, 0, 0.5] 
     orientation_euler: [0, 0, 0] 
   
-  linear_velocity: [-0.005, 0.005, -0.005]  
+  linear_velocity: [-0.01, 0.01, -0.01]  
   angular_velocity: [0.0, 0.0, 0.0]  
