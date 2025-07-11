@@ -1,4 +1,4 @@
-# MuJoCo-based Visual Servoing Framework for UR5E Arm
+# Visual Servoing Framework for UR5E Arm
 
 MuJoCo + Moveit + ROS Noetic simulation environment for Kalman Filter and Image-Based Visual Servoing (IBVS) framework with UR5E and Aruco marker and without ViSP
 
