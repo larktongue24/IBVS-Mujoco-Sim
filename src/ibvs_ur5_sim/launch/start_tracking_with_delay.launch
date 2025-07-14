@@ -1,8 +1,8 @@
 <launch>
     <include file="$(find ibvs_ur5_sim)/launch/kf_ibvs_simulation.launch" />
-    
-    <rosparam file="$(find ibvs_ur5_sim)/config/mocap_linear_motion.yaml" />
 
-    <node name="aruco_mover_node" pkg="ibvs_ur5_sim" type="aruco_linear_mover.py" output="screen" />
+    <rosparam file="$(find ibvs_ur5_sim)/config/mocap_sinusoid_motion.yaml" />
+
+    <node name="aruco_sinusoid_mover_node" pkg="ibvs_ur5_sim" type="aruco_sinusoid_mover.py" output="screen" />
 
 </launch>

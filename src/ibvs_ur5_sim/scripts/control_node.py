@@ -24,10 +24,13 @@ class ControlNode:
     def __init__(self):
         rospy.init_node('control_node')
 
-        self.lambda_ = 0.006 # static object: 0.006
-        self.control_frequency_ = 2.5 # static object: 2.5
+        self.lambda_ = 0.02 # static object: 0.006
+        self.control_frequency_ = 25 # static object: 2.5
         self.dt_ = 1.0 / self.control_frequency_
         self.error_threshold_ = 1.0
+
+        self.lambda_i_ = 0.05
+        self.error_integral = np.zeros(8) 
         
         img_center_x, img_center_y, size = 360.0, 240.0, 200.0
         self.s_des_ = np.array([
@@ -119,10 +122,37 @@ class ControlNode:
         s_cur_predicted = np.array(state_msg.positions)
         depth_cache = np.array(depth_msg.data)
 
+        s_cur_reshaped = s_cur_predicted.reshape((4, 2))
+        s_des_reshaped = self.s_des_.reshape((4, 2))
+
+        distance_errors = []
+
+        for i in range(4):
+            u_cur, v_cur = s_cur_reshaped[i]
+            Z = depth_cache[i] 
+
+            u_des, v_des = s_des_reshaped[i]
+            
+            X_cur = (u_cur - self.cx) * Z / self.fx
+            Y_cur = (v_cur - self.cy) * Z / self.fy
+            P_cur = np.array([X_cur, Y_cur, Z])
+
+            X_des = (u_des - self.cx) * Z / self.fx
+            Y_des = (v_des - self.cy) * Z / self.fy
+            P_des = np.array([X_des, Y_des, Z])
+
+            error_3d_for_this_corner = np.linalg.norm(P_cur - P_des)
+            distance_errors.append(error_3d_for_this_corner)
+
+        avg_3d_error = np.mean(distance_errors)
+
+        rospy.loginfo(f"Average 3D error: {avg_3d_error*1000:.2f} mm")
+
         error = s_cur_predicted - self.s_des_
+        self.error_integral += error * self.dt_
 
         avg_pixel_error = np.mean(np.sqrt(error[0::2]**2 + error[1::2]**2))
-        rospy.loginfo(f"ControlNode | Avg Pixel Error: {avg_pixel_error:.2f}")
+        # rospy.loginfo(f"ControlNode | Avg Pixel Error: {avg_pixel_error:.2f}")
         # self.error_pub.publish(avg_pixel_error)
         
         if avg_pixel_error < self.error_threshold_:
@@ -138,7 +168,8 @@ class ControlNode:
                 return
             L_s[2*i:2*i+2, :] = self.compute_image_jacobian(u, v, Z)
         
-        v_cam = -self.lambda_ * np.dot(pinv(L_s), error)
+        # v_cam = -self.lambda_ * np.dot(pinv(L_s), error)
+        v_cam = -np.dot(pinv(L_s), (self.lambda_ * error + self.lambda_i_ * self.error_integral))
         self.execute_camera_velocity(v_cam, avg_pixel_error)
 
 
@@ -244,6 +275,10 @@ class ControlNode:
 
             else:
                 rospy.logwarn("----------------- IK FAILED -----------------")
+
+            if response.error_code.val != response.error_code.SUCCESS:
+                self.error_integral.fill(0)
+                rospy.logwarn("Integral term reset due to IK failure (Anti-Windup).")
 
         except rospy.ServiceException as e:
             rospy.logerr(f"IK service call failed: {e}")

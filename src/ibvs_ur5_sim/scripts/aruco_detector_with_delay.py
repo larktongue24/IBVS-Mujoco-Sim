@@ -98,11 +98,9 @@ class ArucoDetector:
                 
                 cv_image = self.bridge.imgmsg_to_cv2(rgb_msg, "bgr8")
                 corners, ids, _ = cv2.aruco.detectMarkers(cv_image, self.aruco_dict, parameters=self.aruco_params)
-
+                rospy.sleep(0.02)
                 if ids is not None:
                     corner_points = corners[0][0]
-
-                    rospy.sleep(0.02)
 
                     pose_array_msg = PoseArray()
                     pose_array_msg.header = rgb_msg.header
